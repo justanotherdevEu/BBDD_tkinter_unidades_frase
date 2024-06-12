@@ -92,31 +92,29 @@ def manejar_menu(entrada):
     menu = tk.Label(ventana, text="\n1. Añadir\n2. Buscar en claves\n3. Buscar en valores\n4. Buscar en ambos\n5. Borrar pareja clave-valor\n6. Borrar valor de una clave\n7. Borrar un string de una tupla\n8. Salir del programa\n9. Ver la BBDD completa\n\n\tRecuerda que introducir algo que no sea número te retendrá aquí")
     menu.pack()
     opcion = entrada.get()
-    #entrada.delete(0, tk.END)
+    #if opcion == ''
+    entrada.delete(0, tk.END)
     #entrada.destroy()  # Eliminar el campo de entrada anterior
     if opcion == '1':
-        # Crear campo de entrada para "clave"
+        # Create entry field for "clave"
         clave_user = tk.Entry(ventana)
         clave_user.pack()
-        # Crear botón para enviarlo
-        def enviar_clave():
-            clave = clave_user.get()
-            clave_user.destroy()
-            # Crear campo de entrada para "valor"
-            valor_user = tk.Entry(ventana)
-            valor_user.pack()
-            # Crear botón para enviarlo
-            def enviar_valor():
-                valor = valor_user.get()
-                valor_user.destroy()
-                # Aquí puedes procesar la clave y el valor
-                print(f"Clave: {clave}, Valor: {valor}")
-            boton_valor = tk.Button(ventana, text='Enviar', command=enviar_valor)
-            boton_valor.pack()
-        boton_clave = tk.Button(ventana, text="Enviar", command=enviar_clave)
+        clave = None
+        # Create button to send "clave"
+        boton_clave = tk.Button(ventana, text="Enviar", command=lambda: "clave = clave_user.get()")
         boton_clave.pack()
-        """while clave == None or valor == None:
-            enviar_clave()"""
+        if clave!= None:
+            clave_user.destroy()
+        # Create entry field for "valor"
+        valor_user = tk.Entry(ventana)
+        valor_user.pack()
+        valor = None
+        # Create button to send "valor"
+        boton_valor = tk.Button(ventana, text='Enviar', command=lambda: "valor = valor_user.get()")
+        boton_valor.pack()
+        # Add clave and valor to db
+        db[clave] = valor
+        
         
         if clave in db.keys():  # comprueba si esa clave introducida ya existe
             if type(db[clave]) is tuple and valor not in db[clave]:
@@ -155,9 +153,11 @@ def manejar_menu(entrada):
         entrada.pack()
     elif opcion == '8':
         borrar_etiquetas()
-    elif opcion in list(range(2,7)) or opcion == '9':
+    elif opcion in list(range(2,7)):
         nada = tk.Label(marco_contenido, text="\n\n\t\tlas opciones 2-7 y 9 no funcionan aun")
         nada.pack()
+    elif opcion == '9':
+        mostrar_db_entera()
     elif opcion == '' or opcion == None:
         #borrar_etiquetas()
         advertencia = tk.Label(marco_contenido, text="\n\n\t\tElige un opción entre 1 y 9")
