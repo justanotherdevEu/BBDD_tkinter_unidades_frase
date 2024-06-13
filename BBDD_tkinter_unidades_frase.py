@@ -1,53 +1,31 @@
+import os
+import json
 import tkinter as tk
-import json, os
-from tkinter import messagebox
+from tkinter import messagebox, simpledialog, scrolledtext
 
-# Ruta al archivo TXT
-filename = "unidades_fraseologicas.txt"
+# Verificar instalación de Python 3.10 (esto usualmente no se hace desde un script de Python)
+print("\n\t\t Comprobando que Python 3.10 está instalado.....")
+os.system('winget install "Python.Python.3.10"')
+
 # Inicializamos el diccionario vacío
-db = {}   # es necesario que db sea una variable global, no sólo de algunos bucles y funciones
+db = {}
+filename = "unidades_fraseologicas.txt"
 
-ruta = os.getcwd()  # la librería trabaja con comandos del sistema, con la funcion os.getcwd() obetenemos el directorio donde trabajamos ahora
-
-if os.name == "posix":
-    #print("No es Linux")
-    print("\tEste sistema es Linux, es necesario Windows")
-    
-elif os.name == "nt":
-    print("\t\tTodo bien, este sistema es Windows")
-# Encuentra la posición del directorio 'Users' en la ruta
-pos = ruta.index('Users')
-
-
-# Trunca la ruta hasta 'Users/(usuario)/'
-user_dir = ruta[:pos] + ruta[pos:ruta.index('\\', pos+6)+1]
-#       print("user_dir:\t"+str(user_dir))
-# Añade 'Downloads' a la ruta
-downloads_dir = os.path.join(user_dir, 'Downloads')
-
-# Cambia al directorio de descargas
-os.chdir(downloads_dir)
-#print("downloads_dir\t"+downloads_dir)
+# Cambiar a la carpeta de Descargas
 ruta = os.getcwd()
-#print("current ruta:\t"+ruta)
+pos = ruta.index('Users')
+user_dir = ruta[:pos] + ruta[pos:ruta.index('\\', pos+6)+1]
+downloads_dir = os.path.join(user_dir, 'Downloads')
+os.chdir(downloads_dir)
 ruta_completa = os.path.join(downloads_dir, filename)
+
 # Leer db del archivo TXT
-pos = ruta_completa.index("C:")
-#print("ruta completa:\t"+ruta_completa)
-ruta_completa = ruta_completa[pos:]
-#print("ruta_completa [pos:] :\t"+ruta_completa)
 try:
     with open(ruta_completa, 'r', encoding='utf-8') as f:
         db = json.load(f)
-except: 
+except FileNotFoundError or Exception:  # añadi Exception en general por si acaso
     with open(ruta_completa, 'w+', encoding='utf-8') as f:
-        f.write("{}")
-        if os.path.exists(ruta_completa):
-            #json.dump(db, f, ensure_ascii=False)
-            db = json.load(f)  # iniciar el diccionario vacío en caso de que hayamos tenido que crear el archivo porque no existe
-        del db      # mejor asegurarse de volver a crear de 0 la variable 'db' con el diccionario 
-        
-
+        json.dump({}, f)
 
 # Crear ventana principal
 ventana = tk.Tk()
@@ -55,134 +33,149 @@ ventana.title("Base de Datos de Unidades Fraseológicas")
 
 # Crear marco para el contenido
 marco_contenido = tk.Frame(ventana)
-marco_contenido.pack(padx=150, pady=150)
-#       mostrar_db_entera()
+marco_contenido.pack(padx=100, pady=100)
 
-def borrar_etiquetas():
-    # Borrar contenido de la ventana
-        for etiqueta in etiquetas:
-            etiqueta.destroy()
-        etiquetas.clear()  # Limpiar la lista de etiquetas
-        #ventana.destroy()  # Destruir la ventana principal
-        #   SÓLO DESTRUIR la ventana al terminar del todo el programa
-# Mostrar db en etiquetas
-etiquetas = []
+# Crear área de texto con scroll
+area_texto = scrolledtext.ScrolledText(marco_contenido, width=80, height=20)
+area_texto.pack()
 
-
+# Función para actualizar el área de texto
 def mostrar_db_entera():
+    area_texto.config(state=tk.NORMAL)
+    area_texto.delete(1.0, tk.END)
     for clave, valor in db.items():
-        etiqueta_clave = tk.Label(marco_contenido, text=f"Clave: {clave}")
-        etiqueta_clave.pack()
-        etiquetas.append(etiqueta_clave)
+        area_texto.insert(tk.END, f"Clave: {clave}\nValor: {valor}\n\n")
+    area_texto.config(state=tk.DISABLED)
 
-        etiqueta_valor = tk.Label(marco_contenido, text=f"Valor: {valor}")
-        etiqueta_valor.pack()
-        etiquetas.append(etiqueta_valor)
+# Clase personalizada para el diálogo
+class CustomSimpleDialog(simpledialog._QueryString):
+    def __init__(self, parent, title, prompt):
+        super().__init__(parent, title, prompt)
 
-        # Agregar separador
-        separador = tk.Frame(marco_contenido, height=3,width=100, background="black")
-        separador.pack(pady=2)
-        etiquetas.append(separador)
+    def body(self, master):
+        self.geometry("350x350")
+        return super().body(master)
 
-# Función para manejar el menú
-clave = None
-valor = None
+def ask_custom_string(title, prompt):
+    return CustomSimpleDialog(ventana, title, prompt).result
 
-def manejar_menu(entrada):
-    menu = tk.Label(ventana, text="\n1. Añadir\n2. Buscar en claves\n3. Buscar en valores\n4. Buscar en ambos\n5. Borrar pareja clave-valor\n6. Borrar valor de una clave\n7. Borrar un string de una tupla\n8. Salir del programa\n9. Ver la BBDD completa\n\n\tRecuerda que introducir algo que no sea número te retendrá aquí")
-    menu.pack()
-    opcion = entrada.get()
-    #if opcion == ''
-    entrada.delete(0, tk.END)
-    #entrada.destroy()  # Eliminar el campo de entrada anterior
-    if opcion == '1':
-        # Create entry field for "clave"
-        clave_user = tk.Entry(ventana)
-        clave_user.pack()
-        clave = None
-        # Create button to send "clave"
-        boton_clave = tk.Button(ventana, text="Enviar", command=lambda: "clave = clave_user.get()")
-        boton_clave.pack()
-        if clave!= None:
-            clave_user.destroy()
-        # Create entry field for "valor"
-        valor_user = tk.Entry(ventana)
-        valor_user.pack()
-        valor = None
-        # Create button to send "valor"
-        boton_valor = tk.Button(ventana, text='Enviar', command=lambda: "valor = valor_user.get()")
-        boton_valor.pack()
-        # Add clave and valor to db
+# Funciones para las operaciones
+def añadir():
+    clave = ask_custom_string("Añadir", "Introduce la clave:").lower()
+    valor = ask_custom_string("Añadir", "Introduce el valor:").lower()
+    if clave in db:
+        if type(db[clave]) is list and valor not in db[clave]:
+            db[clave].append(valor)
+        elif db[clave] == "" or db[clave] is None:
+            db[clave] = valor
+        elif db[clave] != valor:
+            db[clave] = [db[clave], valor]
+    else:
         db[clave] = valor
-        
-        
-        if clave in db.keys():  # comprueba si esa clave introducida ya existe
-            if type(db[clave]) is tuple and valor not in db[clave]:
-                db[clave] = list(db[clave])
-                db[clave].append(valor)
-                db[clave] = tuple(db[clave])
-            elif clave in db.keys() and (db[clave] is None or db[clave] == ''):  # comprueba si esa clave introducida ya existe y no tiene valor
-                db[clave] = valor  # cambia el valor a lo que contenga la variable 'valor', pero sin estar haciendo el if anterior, que convierte al final en tupla añadiendo el valor del usuario, pero el primer elemento str queda en blanco
-            elif type(db[clave]) is str and db[clave] != valor:
-                db[clave] = [db[clave], valor]  # cambia el valor a una lista que contiene el valor existente y 'valor'
-            if db[clave] == [""] or db[clave] == (""):  # esto por si acaso no hay nada en valor
-                    db[clave] = valor
-                    db[clave] = tuple(db[clave])
-        elif db.get(clave) == valor:
-                os.system("cls")
-                print("\n\n\t Lo siento, pero ya existe una pareja clave-valor que coinciden exactamente con los que acabas de introducir")
-        else:
-                # Comprueba si el valor ya existe en el diccionario, tanto en uno de los string de una tupla como si está en algún valor string. Pero se hace después de haber comprobado en otro "if" que la clave no existe ya
-            comprobador = False
-            for k, v in db.items():
-                if isinstance(v, tuple):
-                # Si el valor es una tupla, comprueba si el valor está en la tupla
-                    if valor in v:
-                        print(f'La clave {k} tiene un valor que coincide: {v}')
-                        comprobador = True
-                else:
-                # Si el valor no es una tupla, comprueba si el valor coincide
-                    if v == valor:
-                        print(f'La clave {k} tiene un valor que coincide: {v}')
-                        comprobador = True
-            if comprobador == False:
-                db[clave] = valor
-                print("pareja clave-valor añadida correctamente")
-# Crear campo de entrada para el menú, DE NUEVO porque sino no se podrá elegir otra cosa del menu
-        entrada = tk.Entry(ventana)
-        entrada.pack()
-    elif opcion == '8':
-        borrar_etiquetas()
-    elif opcion in list(range(2,7)):
-        nada = tk.Label(marco_contenido, text="\n\n\t\tlas opciones 2-7 y 9 no funcionan aun")
-        nada.pack()
-    elif opcion == '9':
+    mostrar_db_entera()
+
+def buscar(en_claves=True, en_valores=False):
+    palabra = ask_custom_string("Buscar", "Introduce la palabra a buscar:").lower()
+    resultados = []
+    for clave, valor in db.items():
+        if en_claves and palabra in clave:
+            resultados.append((clave, valor))
+        if en_valores and palabra in str(valor):
+            resultados.append((clave, valor))
+    area_texto.config(state=tk.NORMAL)
+    area_texto.delete(1.0, tk.END)
+    for clave, valor in resultados:
+        area_texto.insert(tk.END, f"Clave: {clave}\nValor: {valor}\n\n")
+    area_texto.config(state=tk.DISABLED)
+
+def borrar_pareja():
+    clave = ask_custom_string("Borrar", "Introduce la clave de la pareja a borrar:").lower()
+    if clave in db:
+        del db[clave]
+    else:
+        messagebox.showerror("Error", "La clave no existe.")
+    mostrar_db_entera()
+
+def borrar_valor():
+    clave = ask_custom_string("Borrar valor", "Introduce la clave del valor a borrar:").lower()
+    if clave in db:
+        db[clave] = ""
+    else:
+        messagebox.showerror("Error", "La clave no existe.")
+    mostrar_db_entera()
+
+def borrar_string_tupla():
+    clave = ask_custom_string("Borrar string", "Introduce la clave de la pareja:").lower()
+    string = ask_custom_string("Borrar string", "Introduce el string a borrar:").lower()
+    if clave in db.keys() and (type(db[clave]) is list or type(db[clave]) is tuple) and string in db[clave]:
+        db[clave].remove(string)
+        if len(db[clave]) == 1:
+            db[clave] = str(db[clave])
+    else:
+        messagebox.showerror("Error", "La clave no existe o el string no está en la lista.")
+    mostrar_db_entera()
+
+def salir():
+    ver_exit = ask_custom_string("¿quieres ver la Base de datos antes de salir?", "Elige: y / n").lower()
+    if ver_exit == 'y':
         mostrar_db_entera()
-    elif opcion == '' or opcion == None:
-        #borrar_etiquetas()
-        advertencia = tk.Label(marco_contenido, text="\n\n\t\tElige un opción entre 1 y 9")
-        advertencia.pack()
-        print("Entrada es:\t"+str(entrada)+"\t y opcion:\t "+str(opcion)+"\ttype(opcion)==\t"+str(type(opcion)))
-        """boton_enviar = tk.Button(ventana, text="Enviar")#, command=manejar_menu(entrada))
-        boton_enviar.pack()"""
-    
-# Crear campo de entrada para el menú
-entrada = tk.Entry(ventana)
-entrada.pack()
-mostrar_db_entera()
-# Crear botón para enviar la opción del menú, en la función
-boton_enviar = tk.Button(ventana, text="Enviar", command=manejar_menu(entrada))
-boton_enviar.pack()
+    elif ver_exit == 'n':
+        pass
+    else:
+        while ver_exit not in ('y', 'n'):
+            ver_exit = ask_custom_string("Ver BBDD completa", "Elige: y / n").lower()
+    save_exit = ask_custom_string("¿quieres guardar los cambios antes de salir?", "Elige: y / n").lower()
+    if save_exit == 'y':
+        on_closing()
+    elif save_exit == 'n':
+        pass
+    else:
+        while save_exit not in ('y', 'n'):
+            save_exit = ask_custom_string("Ver BBDD completa", "Elige: y / n").lower()
+    ventana.destroy()
 
-#manejar_menu(entrada)
+# Crear botones
+boton_añadir = tk.Button(marco_contenido, text="Añadir", command=añadir)
+boton_añadir.pack(side=tk.LEFT, padx=5, pady=5)
 
-# Crear botón para borrar lo que muestra en ventana
-boton_enviar = tk.Button(ventana, text="Limpiar ventana", command=borrar_etiquetas)
-boton_enviar.pack()
+boton_buscar_clave = tk.Button(marco_contenido, text="Buscar en claves", command=lambda: buscar(en_claves=True, en_valores=False))
+boton_buscar_clave.pack(side=tk.LEFT, padx=5, pady=5)
 
-# Crear botón para salir
-boton_salir = tk.Button(ventana, text="Salir", command=ventana.destroy)
-boton_salir.pack(pady=10)
+boton_buscar_valor = tk.Button(marco_contenido, text="Buscar en valores", command=lambda: buscar(en_claves=False, en_valores=True))
+boton_buscar_valor.pack(side=tk.LEFT, padx=5, pady=5)
 
-# Iniciar bucle principal
+boton_borrar_pareja = tk.Button(marco_contenido, text="Borrar pareja", command=borrar_pareja)
+boton_borrar_pareja.pack(side=tk.LEFT, padx=5, pady=5)
+
+boton_borrar_valor = tk.Button(marco_contenido, text="Borrar valor", command=borrar_valor)
+boton_borrar_valor.pack(side=tk.LEFT, padx=5, pady=5)
+
+boton_borrar_string = tk.Button(marco_contenido, text="Borrar string", command=borrar_string_tupla)
+boton_borrar_string.pack(side=tk.LEFT, padx=5, pady=5)
+
+boton_salir = tk.Button(marco_contenido, text="Salir", command=salir)
+boton_salir.pack(side=tk.LEFT, padx=5, pady=5)
+
+boton_ver_todo = tk.Button(marco_contenido, text="ver toda la Base de datos", command=mostrar_db_entera)
+boton_ver_todo.pack(side=tk.LEFT, padx=5, pady=5)
+# Preguntar si mostrar la base de datos al iniciar
+def iniciar():
+    visualizar_init = ask_custom_string("Ver BBDD completa", "Elige: y / n").lower()
+    if visualizar_init == 'y':
+        mostrar_db_entera()
+    elif visualizar_init == 'n':
+        pass
+    else:
+        while visualizar_init not in ('y', 'n'):
+            visualizar_init = ask_custom_string("Ver BBDD completa", "Elige: y / n").lower()
+iniciar()
+#mostrar_db_entera()
+
+# Guardar el db antes de salir
+def on_closing():
+    with open(ruta_completa, 'w', encoding='utf-8') as f:
+        json.dump(db, f, ensure_ascii=False)
+    ventana.destroy()
+
+ventana.protocol("WM_DELETE_WINDOW", on_closing)
 ventana.mainloop()
